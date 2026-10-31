@@ -21,7 +21,8 @@
     },
     "updates": {
       "checkAutomatically": "ON_LOAD",
-      "fallbackToCacheTimeout": 0
+      "fallbackToCacheTimeout": 0,
+      "url": "https://u.expo.dev/047eca55-4b2d-434a-ac2e-230d4c0cd6b6"
     },
     "plugins": [
       [
@@ -34,6 +35,12 @@
       ],
       "expo-updates"
     ],
-    "owner": "reki11"
+    "owner": "reki11",
+    "extra": {
+      "eas": {
+        "projectId": "047eca55-4b2d-434a-ac2e-230d4c0cd6b6"
+      }
+    },
+    "ios": {}
   }
 }
