@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "Zakupy",
+    "slug": "zakupy",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0f1311",
+    "android": {
+      "package": "pl.drewnianysklep.zakupy",
+      "adaptiveIcon": {
+        "backgroundColor": "#0f1311",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
+    "updates": {
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
+    },
+    "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 180,
+          "backgroundColor": "#0f1311"
+        }
+      ],
+      "expo-updates"
+    ],
+    "owner": "reki11"
+  }
+}

@@ -1,0 +1,39 @@
+# Nowy plik APK - potrzebny tylko, gdy zmienia sie czesc natywna (nowa biblioteka, uprawnienia, ikona, nazwa).
+# Uruchamia sie sam po zmianie app.json, package.json albo eas.json, albo recznie ("Run workflow" w Actions).
+# Zwykle zmiany interfejsu ida aktualizacja OTA (publikacja.yml) - bez nowego APK.
+name: Android - build APK
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'app.json'
+      - 'package.json'
+      - 'eas.json'
+      - '.github/workflows/build-apk.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: EAS Build (Android APK)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sprawdz EXPOTOKEN
+        run: |
+          if [ -z "${{ secrets.EXPOTOKEN }}" ]; then
+            echo "::error::Brak sekretu EXPOTOKEN (Settings -> Secrets and variables -> Actions)."
+            exit 1
+          fi
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPOTOKEN }}
+      - run: npm ci
+      - run: npm run gen
+      - name: Build APK w chmurze EAS (link do pobrania w expo.dev)
+        run: eas build --platform android --profile production --non-interactive --no-wait

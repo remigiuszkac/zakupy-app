@@ -1,0 +1,109 @@
+# Kazdy push zmian aplikacji na main:
+#  1. testy interfejsu (Playwright, ekran telefonu),
+#  2. Android: aktualizacja OTA (EAS Update, kanal production) - telefon pobiera ja przy otwarciu aplikacji,
+#  3. iPhone: strona PWA na GitHub Pages (https://remigiuszkac.github.io/zakupy-app/).
+name: Publikacja (Android + iPhone)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'web/**'
+      - 'App.js'
+      - 'index.js'
+      - 'src/**'
+      - 'assets/**'
+      - 'scripts/**'
+      - 'tests/**'
+      - 'app.json'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'eas.json'
+      - '.github/workflows/publikacja.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: publikacja
+  cancel-in-progress: false
+
+jobs:
+  testy:
+    name: Testy interfejsu
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - name: Playwright + Chromium
+        run: |
+          npm i --no-save --no-package-lock playwright@1.63.0
+          npx playwright install --with-deps chromium
+      - run: node tests/ui.test.js
+
+  android:
+    name: Android - EAS Update
+    needs: testy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sprawdz EXPOTOKEN
+        run: |
+          if [ -z "${{ secrets.EXPOTOKEN }}" ]; then
+            echo "::warning::Brak sekretu EXPOTOKEN (Settings -> Secrets and variables -> Actions). Pomijam aktualizacje."
+            echo "BRAK_TOKENU=1" >> "$GITHUB_ENV"
+          fi
+      - uses: actions/checkout@v5
+        if: env.BRAK_TOKENU != '1'
+      - uses: actions/setup-node@v6
+        if: env.BRAK_TOKENU != '1'
+        with:
+          node-version: 22
+          cache: npm
+      - uses: expo/expo-github-action@v8
+        if: env.BRAK_TOKENU != '1'
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPOTOKEN }}
+      - name: Instalacja
+        if: env.BRAK_TOKENU != '1'
+        run: npm ci
+      - name: Interfejs (web/index.html -> src/appHtml.js)
+        if: env.BRAK_TOKENU != '1'
+        run: npm run gen
+      - name: Publikacja aktualizacji
+        if: env.BRAK_TOKENU != '1'
+        env:
+          OPIS: ${{ github.event.head_commit.message || 'reczna aktualizacja' }}
+        run: |
+          MSG="$(printf '%s' "$OPIS" | head -n 1 | cut -c1-120)"
+          eas update --channel production --environment production --platform android --message "$MSG" --non-interactive
+
+  iphone:
+    name: iPhone - strona PWA
+    needs: testy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.wdrozenie.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Strona z numerem wydania
+        run: |
+          mkdir -p _site
+          cp -r web/. _site/
+          B="${GITHUB_SHA::7}"
+          W="$(grep -oP "APP_WERSJA = '\K[^']+" web/index.html)"
+          sed -i "s/'__BUILD__'/'$B'/" _site/index.html
+          grep -q "APP_BUILD = '$B'" _site/index.html
+          printf '{"build":"%s","wersja":"%s"}\n' "$B" "$W" > _site/version.json
+          cat _site/version.json
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+      - id: wdrozenie
+        uses: actions/deploy-pages@v5
